@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Gestion des gains</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#0f172a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gains">
+<link rel="icon" type="image/png" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+
+<style>
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; width: 100%; overflow-x: hidden; }
+body {
+  margin: 0; width: 100%; max-width: 100%; overflow-x: hidden;
+  font-family: Arial, Helvetica, sans-serif; color: #1e293b;
+  background: #0f172a; overscroll-behavior-y: none; touch-action: manipulation;
+}
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; touch-action: manipulation; }
+.hidden { display: none !important; }
+body.modal-open { overflow: hidden; }
+
+/* ---------- FONDS ANIMES PAR PAGE ---------- */
+.bg {
+  position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: -1;
+  pointer-events: none;
+}
+.bg::after {
+  content: ""; position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+  background-image: radial-gradient(rgba(255,255,255,.08) 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+}
+.bg-login {
+  background:
+    radial-gradient(circle at 15% 15%, rgba(56,189,248,.45), transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(168,85,247,.45), transparent 45%),
+    linear-gradient(135deg, #0f172a 0%, #1e1b4b 55%, #0c4a6e 100%);
+}
+.bg-home {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(99,102,241,.60), transparent 45%),
+    radial-gradient(circle at 90% 22%, rgba(14,165,233,.50), transparent 42%),
+    radial-gradient(circle at 50% 100%, rgba(236,72,153,.40), transparent 55%),
+    linear-gradient(160deg, #1e293b 0%, #312e81 60%, #0f172a 100%);
+}
+.bg-days {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(52,211,153,.55), transparent 45%),
+    radial-gradient(circle at 92% 30%, rgba(34,211,238,.45), transparent 42%),
+    radial-gradient(circle at 40% 100%, rgba(132,204,22,.35), transparent 55%),
+    linear-gradient(160deg, #064e3b 0%, #0f766e 55%, #155e75 100%);
+}
+.bg-calendar {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(251,146,60,.55), transparent 45%),
+    radial-gradient(circle at 90% 25%, rgba(244,114,182,.50), transparent 42%),
+    radial-gradient(circle at 45% 100%, rgba(139,92,246,.45), transparent 55%),
+    linear-gradient(160deg, #7c2d12 0%, #9d174d 55%, #5b21b6 100%);
+}
+.bg-admin {
+  background:
+    radial-gradient(circle at 10% 12%, rgba(129,140,248,.60), transparent 45%),
+    radial-gradient(circle at 92% 28%, rgba(217,70,239,.45), transparent 42%),
+    radial-gradient(circle at 50% 100%, rgba(244,63,94,.35), transparent 55%),
+    linear-gradient(160deg, #1e1b4b 0%, #581c87 55%, #831843 100%);
+}
+
+/* ---------- LOGIN ---------- */
+.login-container {
+  min-height: 100vh; min-height: 100dvh; display: flex; align-items: center;
+  justify-content: center; padding: 24px;
+}
+.login-card {
+  width: 100%; max-width: 440px; background: rgba(255,255,255,.97); border-radius: 24px;
+  padding: 34px; box-shadow: 0 24px 70px rgba(0,0,0,.35);
+}
+.login-logo {
+  width: 58px; height: 58px; border-radius: 18px; display: flex; align-items: center;
+  justify-content: center; margin-bottom: 20px;
+  background: linear-gradient(135deg, #4f46e5, #0ea5e9); color: #fff; font-size: 27px;
+}
+.login-card h1 { margin: 0 0 8px; font-size: 28px; }
+.login-card p { color: #64748b; margin: 0 0 26px; line-height: 1.5; }
+.login-field { margin-bottom: 16px; }
+.login-field label { display: block; margin-bottom: 7px; color: #334155; font-size: 13px; font-weight: 700; }
+.login-field input {
+  width: 100%; height: 50px; border: 1px solid #dbe2ea; border-radius: 13px;
+  padding: 0 14px; background: #f8fafc; color: #0f172a;
+}
+.login-field input:focus { border-color: #4f46e5; background: #fff; }
+.login-button {
+  width: 100%; min-height: 52px; margin-top: 8px; border: 0; border-radius: 13px;
+  background: linear-gradient(135deg, #4f46e5, #0ea5e9); color: #fff; font-weight: 800; font-size: 15px;
+}
+.login-button:disabled { opacity: .65; cursor: wait; }
+.login-hint { margin-top: 16px; text-align: center; color: #94a3b8; font-size: 12px; }
+.restore-text { color: #fff; font-size: 18px; text-align: center; }
+
+/* ---------- FORMULAIRES ---------- */
+.form-group { margin-bottom: 16px; min-width: 0; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; }
+input, select, textarea {
+  width: 100%; border: 1px solid #d8dde3; border-radius: 10px;
+  padding: 11px 12px; background: #fff; outline: none; color: #1e293b;
+}
+input:focus, select:focus, textarea:focus { border-color: #4f46e5; }
+textarea { min-height: 80px; resize: vertical; }
+
+/* ---------- BOUTONS ---------- */
+.btn { border: none; border-radius: 10px; padding: 11px 16px; font-weight: 600; }
+.btn-primary { background: linear-gradient(135deg, #4f46e5, #0ea5e9); color: #fff; }
+.btn-secondary { background: #e9edf2; color: #222; }
+.btn-danger { background: #dc2626; color: #fff; }
+.btn-small { padding: 8px 12px; font-size: 13px; }
+.btn:disabled { opacity: .6; }
+
+/* ---------- APPLICATION ---------- */
+.app { min-height: 100vh; min-height: 100dvh; }
+.topbar {
+  background: rgba(15,23,42,.94); color: #fff; padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 15px;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-size: 20px; font-weight: 700; }
+.topbar-user { font-size: 14px; opacity: .85; margin-top: 2px; }
+
+.nav {
+  background: rgba(255,255,255,.96); border-bottom: 1px solid #e5e7eb;
+  display: flex; gap: 5px; padding: 8px 15px; overflow-x: auto;
+}
+.nav button {
+  border: none; background: transparent; padding: 10px 14px; border-radius: 9px;
+  white-space: nowrap; display: flex; align-items: center; gap: 6px; color: #334155;
+}
+.nav button.active { background: #1e293b; color: #fff; }
+.nav .ni { font-size: 16px; }
+
+.container { max-width: 1100px; width: 100%; margin: 0 auto; padding: 24px 18px 40px; }
+
+.page-header {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 10px; margin-bottom: 18px; flex-wrap: wrap;
+}
+.page-header h2 { margin: 0; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.month-input { max-width: 190px; }
+.filter-select { max-width: 230px; }
+
+/* ---------- CARTES ---------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.card {
+  background: rgba(255,255,255,.96); border-radius: 15px; padding: 18px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18); min-width: 0; border-top: 4px solid #6366f1;
+}
+.card.c-green { border-top-color: #22c55e; }
+.card.c-blue { border-top-color: #3b82f6; }
+.card.c-amber { border-top-color: #f59e0b; }
+.card.c-red { border-top-color: #ef4444; }
+.card.c-dark { border-top-color: #0f172a; }
+.card-label { color: #6b7280; font-size: 13px; margin-bottom: 8px; }
+.card-value { font-size: 24px; font-weight: 700; word-break: break-word; }
+
+.section {
+  background: rgba(255,255,255,.96); border-radius: 15px; padding: 18px;
+  margin-bottom: 20px; box-shadow: 0 6px 20px rgba(0,0,0,.18);
+}
+.section-title { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; }
+.muted { color: #64748b; }
+.empty { text-align: center; color: #64748b; padding: 18px 6px; }
+
+/* ---------- STATS PAR EMPLOYE (ADMIN) ---------- */
+.emp-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.emp-card {
+  background: rgba(255,255,255,.97); border-radius: 16px; padding: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.18); min-width: 0;
+}
+.emp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.emp-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex: 0 0 44px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #4f46e5, #0ea5e9); color: #fff; font-weight: 800; font-size: 18px;
+}
+.emp-name { font-weight: 800; font-size: 17px; word-break: break-word; }
+.emp-sub { font-size: 12px; color: #64748b; }
+.group-title { color: #fff; font-weight: 700; font-size: 18px; margin: 4px 0 12px; text-shadow: 0 2px 8px rgba(0,0,0,.35); }
+
+/* ---------- LISTE DES JOURNEES ---------- */
+.entry {
+  background: #fff; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px;
+  border: 1px solid #e5e7eb; border-left: 6px solid #22c55e; min-width: 0;
+}
+.entry.has-recharge { border-left-color: #3b82f6; }
+.entry.is-off { border-left-color: #ef4444; background: #fff5f5; }
+.entry-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.entry-date { font-weight: 700; }
+.entry-who { font-size: 12px; color: #64748b; margin-top: 2px; }
+.badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.badge-green { background: #dcfce7; color: #166534; }
+.badge-blue { background: #dbeafe; color: #1d4ed8; }
+.badge-red { background: #fee2e2; color: #991b1b; }
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.stats.cols3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stat { background: #f1f5f9; border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.stat span { display: block; font-size: 11px; color: #64748b; margin-bottom: 2px; }
+.stat b { font-size: 14px; word-break: break-word; }
+.stat.s-tip { background: #fef3c7; }
+.stat.s-recharge { background: #dbeafe; }
+.stat.s-net { background: #dcfce7; }
+.stat.s-exp { background: #fee2e2; }
+.entry-notes { margin-top: 8px; font-size: 13px; color: #475569; word-break: break-word; }
+.entry-actions { display: flex; gap: 8px; margin-top: 10px; }
+.entry-actions .btn { flex: 1; }
+
+/* ---------- CALENDRIER ---------- */
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 12px; font-size: 13px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 14px; height: 14px; border-radius: 4px; display: inline-block; border: 2px solid; }
+.dot-green { background: #dcfce7; border-color: #22c55e; }
+.dot-blue { background: #dbeafe; border-color: #3b82f6; }
+.dot-red { background: #fee2e2; border-color: #ef4444; }
+.calendar { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.calendar-header { text-align: center; font-weight: 700; padding: 8px 2px; font-size: 12px; }
+.calendar-empty { min-height: 1px; }
+.calendar-day {
+  min-height: 82px; border: 2px solid #e5e7eb; border-radius: 9px; padding: 6px;
+  background: #f8fafc; overflow: hidden; cursor: pointer; min-width: 0;
+}
+.calendar-day.worked { background: #dcfce7; border-color: #22c55e; }
+.calendar-day.recharge { background: #dbeafe; border-color: #3b82f6; }
+.calendar-day.off { background: #fee2e2; border-color: #ef4444; }
+.calendar-day.today .calendar-day-number { text-decoration: underline; }
+.calendar-day-number { font-weight: 700; }
+.calendar-day-value { font-size: 12px; margin-top: 6px; font-weight: 700; word-break: break-word; }
+.worked .calendar-day-value { color: #166534; }
+.recharge .calendar-day-value { color: #1d4ed8; }
+.off .calendar-day-value { color: #991b1b; }
+
+/* ---------- ADMIN ---------- */
+.employee-row {
+  border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; margin-bottom: 10px; background: #fff;
+}
+.employee-row-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.employee-status { display: inline-block; padding: 4px 8px; border-radius: 20px; font-size: 12px; }
+.employee-status.active { background: #dcfce7; color: #166534; }
+.employee-status.inactive { background: #fee2e2; color: #991b1b; }
+
+/* ---------- ALERTES / TOAST ---------- */
+.alert { padding: 12px 15px; border-radius: 10px; margin-bottom: 15px; }
+.alert-error { background: #fee2e2; color: #991b1b; }
+.alert-success { background: #dcfce7; color: #166534; }
+.toast {
+  position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%);
+  background: #0f172a; color: #fff; padding: 11px 18px; border-radius: 12px;
+  z-index: 300; max-width: 90%; text-align: center; font-size: 14px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.toast.error { background: #b91c1c; }
+
+/* ---------- MODAL ---------- */
+.modal {
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,.55);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 200;
+}
+.modal-card {
+  background: #fff; border-radius: 16px; padding: 22px; width: 100%; max-width: 600px;
+  max-height: 90vh; max-height: 90dvh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.segment { display: flex; gap: 8px; margin-bottom: 16px; }
+.segment button {
+  flex: 1; padding: 13px 8px; border-radius: 12px; border: 2px solid #e2e8f0;
+  background: #f8fafc; font-weight: 700; color: #475569;
+}
+.segment button.on-worked { background: #dcfce7; border-color: #22c55e; color: #166534; }
+.segment button.on-off { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+
+/* =====================================================
+   TELEPHONE
+===================================================== */
+@media (max-width: 700px) {
+
+  input, select, textarea { font-size: 16px; }
+
+  .login-container { padding: 16px; }
+  .login-card { padding: 26px 22px; border-radius: 20px; }
+  .login-card h1 { font-size: 24px; }
+
+  .topbar { padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
+  .topbar-title { font-size: 17px; }
+  .topbar-user { font-size: 12px; }
+  .topbar .btn { padding: 9px 12px; font-size: 13px; }
+
+  .nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+    border-top: 1px solid #e5e7eb; border-bottom: 0;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    gap: 2px; overflow-x: visible;
+    box-shadow: 0 -4px 16px rgba(0,0,0,.10);
+  }
+  .nav button {
+    flex: 1; min-width: 0; flex-direction: column; gap: 2px; padding: 8px 2px;
+    font-size: 11px; white-space: normal; text-align: center; border-radius: 10px; justify-content: center;
+  }
+  .nav .ni { font-size: 20px; line-height: 1; }
+
+  .container { padding: 14px 12px calc(96px + env(safe-area-inset-bottom, 0px)); }
+
+  .page-header { flex-direction: column; align-items: stretch; gap: 10px; }
+  .page-header h2 { font-size: 20px; }
+  .month-input, .filter-select { max-width: none; width: 100%; }
+  .header-actions { flex-direction: column; align-items: stretch; }
+  .header-actions .btn { width: 100%; padding: 13px 16px; }
+
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .card { padding: 13px; border-radius: 13px; }
+  .card-label { font-size: 12px; margin-bottom: 5px; }
+  .card-value { font-size: 18px; }
+
+  .emp-list { grid-template-columns: minmax(0, 1fr); }
+  .section { padding: 14px; border-radius: 13px; }
+  .section-title { font-size: 17px; margin-bottom: 12px; }
+
+  .calendar { gap: 3px; }
+  .calendar-header { font-size: 11px; padding: 6px 0; }
+  .calendar-day { min-height: 56px; height: 56px; padding: 4px; border-radius: 6px; border-width: 2px; }
+  .calendar-day-number { font-size: 12px; }
+  .calendar-day-value { font-size: 9px; margin-top: 3px; }
+
+  .modal { align-items: flex-end; padding: 0; }
+  .modal-card {
+    border-radius: 20px 20px 0 0; max-height: 92vh; max-height: 92dvh;
+    padding: 18px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+  .modal-card .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .modal-card .grid .form-group:first-child { grid-column: 1 / -1; }
+  .form-group { margin-bottom: 12px; }
+  .form-group label { font-size: 13px; }
+  .modal-actions { position: sticky; bottom: 0; background: #fff; padding-top: 10px; }
+  .modal-actions .btn { flex: 1; padding: 14px; }
+
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .toast { bottom: 84px; }
+}
+</style>
+</head>
+
+<body>
+
+<div id="bg" class="bg bg-login"></div>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login-container">
+  <div class="login-card">
+    <div class="login-logo">€</div>
+    <h1>Votre espace gains</h1>
+    <p>Connectez-vous pour consulter vos journées, vos pourboires et vos revenus.</p>
+
+    <form id="loginForm" onsubmit="return handleLoginSubmit(event)">
+      <div id="loginAlert"></div>
+
+      <div class="login-field">
+        <label for="loginUsername">Identifiant</label>
+        <input id="loginUsername" type="text" autocomplete="username" autocapitalize="none" placeholder="Entrez votre identifiant" required>
+      </div>
+
+      <div class="login-field">
+        <label for="loginPassword">Mot de passe</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Entrez votre mot de passe" required>
+      </div>
+
+      <button id="loginButton" type="submit" class="login-button">Se connecter</button>
+      <div class="login-hint">Vous resterez connecté sur cet appareil</div>
+    </form>
+  </div>
+</div>
+
+<!-- ECRAN DE RECONNEXION AUTOMATIQUE -->
+<div id="restoreScreen" class="login-container hidden">
+  <div class="restore-text">Chargement...</div>
+</div>
+
+<!-- APPLICATION -->
+<div id="appScreen" class="app hidden">
+
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Gestion des gains</div>
+      <div id="userName" class="topbar-user"></div>
+    </div>
+    <button class="btn btn-secondary" onclick="logout()">Déconnexion</button>
+  </div>
+
+  <div class="nav">
+    <button id="nav-home" class="active" onclick="showPage('home')"><span class="ni">🏠</span><span>Accueil</span></button>
+    <button id="nav-days" onclick="showPage('days')"><span class="ni">📅</span><span>Jours</span></button>
+    <button id="nav-calendar" onclick="showPage('calendar')"><span class="ni">🗓</span><span>Calendrier</span></button>
+    <button id="nav-admin" class="hidden" onclick="showPage('admin')"><span class="ni">⚙️</span><span>Admin</span></button>
+  </div>
+
+  <main class="container">
+
+    <!-- ACCUEIL -->
+    <section id="page-home">
+      <div class="page-header">
+        <h2 id="homeTitle">Mon résumé</h2>
+        <input id="monthHome" class="month-input" type="month" onchange="loadData('monthHome')">
+      </div>
+
+      <div id="homeContent"></div>
+    </section>
+
+    <!-- JOURS -->
+    <section id="page-days" class="hidden">
+      <div class="page-header">
+        <h2>Jours travaillés</h2>
+        <div class="header-actions">
+          <select id="filterDays" class="filter-select hidden" onchange="setEmployeeFilter(this.value)"></select>
+          <input id="monthDays" class="month-input" type="month" onchange="loadData('monthDays')">
+          <button class="btn btn-primary" onclick="openEntryModal()">+ Ajouter une journée</button>
+        </div>
+      </div>
+
+      <div id="entriesList"></div>
+    </section>
+
+    <!-- CALENDRIER -->
+    <section id="page-calendar" class="hidden">
+      <div class="page-header">
+        <h2>Calendrier</h2>
+        <div class="header-actions">
+          <select id="filterCalendar" class="filter-select hidden" onchange="setEmployeeFilter(this.value)"></select>
+          <input id="monthCalendar" class="month-input" type="month" onchange="loadData('monthCalendar')">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="legend">
+          <span><i class="dot dot-green"></i> Travaillé</span>
+          <span><i class="dot dot-blue"></i> Travaillé avec recharge</span>
+          <span><i class="dot dot-red"></i> Non travaillé</span>
+        </div>
+        <div class="calendar">
+          <div class="calendar-header">Lun</div>
+          <div class="calendar-header">Mar</div>
+          <div class="calendar-header">Mer</div>
+          <div class="calendar-header">Jeu</div>
+          <div class="calendar-header">Ven</div>
+          <div class="calendar-header">Sam</div>
+          <div class="calendar-header">Dim</div>
+        </div>
+        <div id="calendarDays" class="calendar"></div>
+        <p class="muted" style="font-size:12px;margin-bottom:0">Touchez un jour pour l’ajouter ou le modifier.</p>
+      </div>
+    </section>
+
+    <!-- ADMIN -->
+    <section id="page-admin" class="hidden">
+      <div class="page-header"><h2>Administration</h2></div>
+
+      <div class="section">
+        <div class="section-title">Ajouter un employé</div>
+        <div class="grid">
+          <div class="form-group"><label>Nom</label><input id="newEmployeeName"></div>
+          <div class="form-group"><label>Identifiant</label><input id="newEmployeeUsername" autocapitalize="none"></div>
+          <div class="form-group"><label>Mot de passe</label><input id="newEmployeePassword" type="password"></div>
+        </div>
+        <button class="btn btn-primary" onclick="createEmployee()" style="width:100%;padding:13px">Créer le compte</button>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Employés</div>
+        <div id="employeesList"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- MODAL JOURNEE -->
+<div id="entryModal" class="modal hidden">
+  <div class="modal-card">
+    <h2 id="entryModalTitle" style="margin-top:0">Ajouter une journée</h2>
+    <input id="entryId" type="hidden">
+    <input id="entryStatus" type="hidden" value="worked">
+
+    <div id="entryEmployeeWrap" class="form-group hidden">
+      <label>Employé</label>
+      <select id="entryEmployee"></select>
+    </div>
+
+    <div class="form-group">
+      <label>Date</label>
+      <input id="entryDate" type="date">
+    </div>
+
+    <div class="segment">
+      <button id="segWorked" type="button" class="on-worked" onclick="setEntryStatus('worked')">✅ Travaillé</button>
+      <button id="segOff" type="button" onclick="setEntryStatus('off')">🚫 Non travaillé</button>
+    </div>
+
+    <div id="amountFields">
+      <div class="grid">
+        <div class="form-group"><label>Gains (€)</label><input id="entryGains" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"></div>
+        <div class="form-group"><label>Pourboires (€)</label><input id="entryTips" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"></div>
+        <div class="form-group"><label>Recharge (€)</label><input id="entryRecharge" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"></div>
+        <div class="form-group"><label>Bonus (€)</label><input id="entryBonus" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"></div>
+        <div class="form-group"><label>Autres gains (€)</label><input id="entryOtherGains" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"></div>
+        <div class="form-group"><label>Dépenses (€)</label><input id="entryExpenses" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="entryNotes" placeholder="Ex : journée longue, frais, remarque..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeEntryModal()">Annuler</button>
+      <button id="entrySaveBtn" class="btn btn-primary" onclick="saveEntry()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== CONFIGURATION : colle ici l'URL du déploiement Apps Script (se termine par /exec) ===== */
+var API_URL = "COLLE_ICI_URL_APPS_SCRIPT_EXEC";
+
+/* Pont vers Apps Script : reproduit google.script.run pour le reste du code */
+function callApi(action, args, onOk, onFail) {
+  if (!/^https:/.test(API_URL)) {
+    if (onFail) onFail({ message: "L'URL de l'API n'est pas configurée dans index.html." });
+    return;
+  }
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: action, args: args }),
+    redirect: 'follow'
+  })
+  .then(function (r) { return r.json(); })
+  .then(function (data) {
+    if (data && data.ok) { if (onOk) onOk(data.result); }
+    else if (onFail) onFail({ message: (data && data.error) || 'Erreur serveur.' });
+  }, function () {
+    if (onFail) onFail({ message: 'Connexion au serveur impossible.' });
+  });
+}
+
+function makeRunner(onOk, onFail) {
+  return new Proxy({}, {
+    get: function (target, name) {
+      if (name === 'withSuccessHandler') return function (fn) { return makeRunner(fn, onFail); };
+      if (name === 'withFailureHandler') return function (fn) { return makeRunner(onOk, fn); };
+      return function () {
+        callApi(String(name), Array.prototype.slice.call(arguments), onOk, onFail);
+      };
+    }
+  });
+}
+
+var google = {
+  script: {
+    run: makeRunner(null, null),
+    history: { replace: function () {} },
+    url: { getLocation: function (cb) { cb({ parameter: {} }); } }
+  }
+};
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  });
+}
+</script>
+
+<script>
+var TOKEN_KEY = 'gains_token';
+var sessionToken = null;
+var currentUser = null;
+var currentEntries = [];
+var currentSummary = {};
+var currentOverview = null;
+var currentEmployees = [];
+var currentPage = 'home';
+var selectedEmployee = 'all';
+var lastLoad = 0;
+var toastTimer = null;
+
+document.addEventListener('DOMContentLoaded', function () {
+  var month = currentMonthString();
+  setMonthInputs(month);
+  setBackground('login');
+
+  findToken(function (token) {
+    if (token) restoreSession(token, 0);
+  });
+});
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function currentMonthString() {
+  var now = new Date();
+  return now.getFullYear() + '-' + pad2(now.getMonth() + 1);
+}
+
+function todayString() {
+  var now = new Date();
+  return now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate());
+}
+
+function setMonthInputs(month) {
+  document.getElementById('monthHome').value = month;
+  document.getElementById('monthDays').value = month;
+  document.getElementById('monthCalendar').value = month;
+}
+
+function getMonth() {
+  return document.getElementById('monthHome').value || currentMonthString();
+}
+
+function isAdmin() {
+  return !!(currentUser && currentUser.type === 'admin');
+}
+
+function setBackground(name) {
+  document.getElementById('bg').className = 'bg bg-' + name;
+}
+
+/* ---------- SESSION MEMORISEE (stockage multiple) ---------- */
+
+function saveToken(token) {
+  try { localStorage.setItem(TOKEN_KEY, token); } catch (e) {}
+  try { sessionStorage.setItem(TOKEN_KEY, token); } catch (e) {}
+  try {
+    document.cookie = TOKEN_KEY + '=' + encodeURIComponent(token) +
+      '; max-age=31536000; path=/; SameSite=None; Secure';
+  } catch (e) {}
+  try { window.name = 'GT:' + token; } catch (e) {}
+  try { google.script.history.replace(null, { t: token }); } catch (e) {}
+}
+
+function clearToken() {
+  try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+  try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) {}
+  try {
+    document.cookie = TOKEN_KEY + '=; max-age=0; path=/; SameSite=None; Secure';
+  } catch (e) {}
+  try { window.name = ''; } catch (e) {}
+  try { google.script.history.replace(null, {}); } catch (e) {}
+}
+
+function readCookie() {
+  try {
+    var parts = String(document.cookie || '').split(';');
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i].trim();
+      if (p.indexOf(TOKEN_KEY + '=') === 0) {
+        return decodeURIComponent(p.substring(TOKEN_KEY.length + 1));
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+
+function findToken(callback) {
+  var token = null;
+  try { token = localStorage.getItem(TOKEN_KEY); } catch (e) {}
+  if (!token) { try { token = sessionStorage.getItem(TOKEN_KEY); } catch (e) {} }
+  if (!token) token = readCookie();
+  if (!token) {
+    try {
+      if (String(window.name || '').indexOf('GT:') === 0) token = window.name.substring(3);
+    } catch (e) {}
+  }
+  if (token) { callback(token); return; }
+
+  try {
+    google.script.url.getLocation(function (loc) {
+      var t = loc && loc.parameter && loc.parameter.t;
+      if (t && typeof t === 'object' && t.length) t = t[0];
+      callback(t || null);
+    });
+  } catch (e) {
+    callback(null);
+  }
+}
+
+function restoreSession(token, attempt) {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('restoreScreen').classList.remove('hidden');
+
+  google.script.run
+    .withSuccessHandler(function (data) {
+      sessionToken = token;
+      saveToken(token);
+      applyData(data);
+      enterApp();
+    })
+    .withFailureHandler(function (error) {
+      var message = (error && error.message) || '';
+
+      // Session vraiment expirée : on efface. Sinon (réseau) on réessaie.
+      if (/Session/i.test(message)) {
+        clearToken();
+        sessionToken = null;
+        showLogin();
+        return;
+      }
+
+      if (attempt < 3) {
+        setTimeout(function () { restoreSession(token, attempt + 1); }, 1500);
+        return;
+      }
+
+      showLogin();
+      showLoginAlert('Connexion au serveur impossible. Vérifiez internet puis rechargez la page.', 'error');
+    })
+    .getAppData(token, getMonth(), 'all');
+}
+
+function showLogin() {
+  document.getElementById('restoreScreen').classList.add('hidden');
+  document.getElementById('appScreen').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  setBackground('login');
+}
+
+function enterApp() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('restoreScreen').classList.add('hidden');
+  document.getElementById('appScreen').classList.remove('hidden');
+  document.getElementById('userName').textContent =
+    (currentUser && (currentUser.name || currentUser.username)) || 'Utilisateur';
+
+  if (isAdmin()) document.getElementById('nav-admin').classList.remove('hidden');
+  else document.getElementById('nav-admin').classList.add('hidden');
+
+  showPage('home', true);
+}
+
+/* ---------- LOGIN ---------- */
+
+function handleLoginSubmit(event) {
+  if (event) event.preventDefault();
+  login();
+  return false;
+}
+
+function resetLoginButton() {
+  var button = document.getElementById('loginButton');
+  if (button) {
+    button.disabled = false;
+    button.textContent = 'Se connecter';
+  }
+}
+
+function login() {
+  var username = String(document.getElementById('loginUsername').value || '').trim();
+  var password = String(document.getElementById('loginPassword').value || '');
+  var button = document.getElementById('loginButton');
+
+  showLoginAlert('');
+
+  if (!username || !password) {
+    showLoginAlert('Veuillez saisir votre identifiant et votre mot de passe.', 'error');
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'Connexion...';
+
+  google.script.run
+    .withSuccessHandler(function (result) {
+
+      if (!result || !result.success || !result.token) {
+        resetLoginButton();
+        showLoginAlert('Connexion impossible. Réponse du serveur invalide.', 'error');
+        return;
+      }
+
+      saveToken(result.token);
+
+      google.script.run
+        .withSuccessHandler(function (data) {
+          sessionToken = result.token;
+          applyData(data);
+          enterApp();
+          resetLoginButton();
+        })
+        .withFailureHandler(function (error) {
+          clearToken();
+          sessionToken = null;
+          currentUser = null;
+          resetLoginButton();
+          showLoginAlert(
+            'Connexion réussie, mais chargement impossible : ' +
+            ((error && error.message) || 'erreur inconnue'),
+            'error'
+          );
+        })
+        .getAppData(result.token, getMonth(), 'all');
+
+    })
+    .withFailureHandler(function (error) {
+      resetLoginButton();
+      var message = 'Erreur de connexion.';
+      if (error && error.message) message = error.message;
+      else if (typeof error === 'string') message = error;
+      showLoginAlert(message, 'error');
+    })
+    .login(username, password);
+}
+
+function showLoginAlert(message, type) {
+  var container = document.getElementById('loginAlert');
+  if (!message) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = '<div class="alert alert-' + (type || 'error') + '">' + escapeHtml(message) + '</div>';
+}
+
+/* ---------- LOGOUT ---------- */
+
+function backToLogin() {
+  clearToken();
+  sessionToken = null;
+  currentUser = null;
+  currentEntries = [];
+  currentSummary = {};
+  currentOverview = null;
+  currentEmployees = [];
+  selectedEmployee = 'all';
+
+  document.getElementById('nav-admin').classList.add('hidden');
+  document.getElementById('loginPassword').value = '';
+  showLogin();
+}
+
+function logout() {
+  if (!sessionToken) return;
+  var token = sessionToken;
+  google.script.run
+    .withSuccessHandler(backToLogin)
+    .withFailureHandler(backToLogin)
+    .logout(token);
+}
+
+/* ---------- NAVIGATION ---------- */
+
+function showPage(page, skipLoad) {
+  currentPage = page;
+
+  ['home', 'days', 'calendar', 'admin'].forEach(function (name) {
+    var el = document.getElementById('page-' + name);
+    if (el) el.classList.add('hidden');
+    var nav = document.getElementById('nav-' + name);
+    if (nav) nav.classList.remove('active');
+  });
+
+  var selected = document.getElementById('page-' + page);
+  if (selected) selected.classList.remove('hidden');
+
+  var selectedNav = document.getElementById('nav-' + page);
+  if (selectedNav) selectedNav.classList.add('active');
+
+  setBackground(page);
+  window.scrollTo(0, 0);
+
+  if (!sessionToken) return;
+
+  renderAll();
+
+  if (page === 'admin') {
+    loadEmployees();
+    return;
+  }
+
+  // Rechargement silencieux seulement si les données sont anciennes
+  if (!skipLoad && Date.now() - lastLoad > 45000) loadData();
+}
+
+/* ---------- CHARGEMENT ---------- */
+
+function applyData(data) {
+  data = data || {};
+  currentUser = data.user || currentUser;
+  currentEntries = data.entries || [];
+  currentSummary = data.summary || {};
+  currentOverview = data.overview || null;
+  currentEmployees = data.employees || [];
+  lastLoad = Date.now();
+  fillFilters();
+}
+
+function fillFilters() {
+  var ids = ['filterDays', 'filterCalendar'];
+
+  ids.forEach(function (id) {
+    var select = document.getElementById(id);
+    if (!isAdmin()) {
+      select.classList.add('hidden');
+      return;
+    }
+    select.classList.remove('hidden');
+
+    var html = '<option value="all">Tous les employés</option>';
+    currentEmployees.forEach(function (emp) {
+      html += '<option value="' + escapeHtml(emp.id) + '">' + escapeHtml(emp.name) + '</option>';
+    });
+    select.innerHTML = html;
+    select.value = selectedEmployee;
+    if (select.value !== selectedEmployee) {
+      selectedEmployee = 'all';
+      select.value = 'all';
+    }
+  });
+}
+
+function setEmployeeFilter(value) {
+  selectedEmployee = value || 'all';
+  document.getElementById('filterDays').value = selectedEmployee;
+  document.getElementById('filterCalendar').value = selectedEmployee;
+  loadData();
+}
+
+function loadData(sourceId) {
+  if (!sessionToken) return;
+
+  var month = '';
+  if (sourceId) month = document.getElementById(sourceId).value;
+  if (!month) month = getMonth();
+
+  setMonthInputs(month);
+
+  google.script.run
+    .withSuccessHandler(function (data) {
+      applyData(data);
+      renderAll();
+    })
+    .withFailureHandler(function (error) {
+      var message = (error && error.message) || 'Erreur lors du chargement des données.';
+      if (/Session/i.test(message)) {
+        showToast(message, true);
+        backToLogin();
+        return;
+      }
+      showToast(message, true);
+    })
+    .getAppData(sessionToken, month, selectedEmployee);
+}
+
+/* ---------- RENDU ---------- */
+
+function renderAll() {
+  renderHome();
+  renderEntries();
+  renderCalendar();
+}
+
+function statBox(label, value, cls) {
+  return '<div class="stat ' + (cls || '') + '"><span>' + escapeHtml(label) + '</span><b>' + value + '</b></div>';
+}
+
+function entryCard(entry, full) {
+  var isOff = entry.status === 'off';
+  var hasRecharge = !isOff && Number(entry.recharge || 0) > 0;
+  var cls = 'entry' + (isOff ? ' is-off' : (hasRecharge ? ' has-recharge' : ''));
+
+  var badge = isOff
+    ? '<span class="badge badge-red">Non travaillé</span>'
+    : (hasRecharge
+        ? '<span class="badge badge-blue">Avec recharge</span>'
+        : '<span class="badge badge-green">Travaillé</span>');
+
+  var html = '<div class="' + cls + '">' +
+    '<div class="entry-head"><div>' +
+      '<div class="entry-date">' + escapeHtml(formatDate(entry.date)) + '</div>' +
+      (isAdmin() ? '<div class="entry-who">👤 ' + escapeHtml(entry.employeeName || '') + '</div>' : '') +
+    '</div>' + badge + '</div>';
+
+  if (!isOff) {
+    html += '<div class="stats">' +
+      statBox('Gains', money(entry.gains)) +
+      statBox('Pourboires', money(entry.tips), 's-tip') +
+      statBox('Recharge', money(entry.recharge), 's-recharge') +
+      statBox('Net', money(entry.net), 's-net');
+
+    if (full) {
+      html += statBox('Bonus', money(entry.bonus)) +
+        statBox('Autres gains', money(entry.otherGains)) +
+        statBox('Dépenses', money(entry.expenses), 's-exp');
+    }
+    html += '</div>';
+  }
+
+  if (full && entry.notes) {
+    html += '<div class="entry-notes">📝 ' + escapeHtml(entry.notes) + '</div>';
+  }
+
+  if (full) {
+    html += '<div class="entry-actions">' +
+      '<button class="btn btn-secondary btn-small" data-id="' + escapeHtml(entry.id) +
+        '" onclick="editEntry(this.dataset.id)">Modifier</button>' +
+      '<button class="btn btn-danger btn-small" data-id="' + escapeHtml(entry.id) +
+        '" onclick="removeEntry(this.dataset.id)">Supprimer</button>' +
+    '</div>';
+  }
+
+  return html + '</div>';
+}
+
+function summaryCards(s) {
+  s = s || {};
+  return '<div class="cards">' +
+    '<div class="card c-green"><div class="card-label">Jours travaillés</div><div class="card-value">' + (s.daysWorked || 0) + '</div></div>' +
+    '<div class="card c-red"><div class="card-label">Jours non travaillés</div><div class="card-value">' + (s.daysOff || 0) + '</div></div>' +
+    '<div class="card"><div class="card-label">Total gagné</div><div class="card-value">' + money(s.gross) + '</div></div>' +
+    '<div class="card c-amber"><div class="card-label">Pourboires</div><div class="card-value">' + money(s.tips) + '</div></div>' +
+    '<div class="card c-blue"><div class="card-label">Recharge</div><div class="card-value">' + money(s.recharge) + '</div></div>' +
+    '<div class="card c-red"><div class="card-label">Dépenses</div><div class="card-value">' + money(s.expenses) + '</div></div>' +
+    '<div class="card c-dark"><div class="card-label">Net</div><div class="card-value">' + money(s.net) + '</div></div>' +
+  '</div>';
+}
+
+function renderHome() {
+  var box = document.getElementById('homeContent');
+  var title = document.getElementById('homeTitle');
+  var html = '';
+
+  if (isAdmin()) {
+    title.textContent = 'Vue d’ensemble';
+    html += '<div class="group-title">Total de tous les employés</div>';
+    html += summaryCards(currentSummary);
+
+    html += '<div class="group-title">Détail par employé</div>';
+    var list = currentOverview || [];
+    if (!list.length) {
+      html += '<div class="section"><div class="empty">Aucun employé pour le moment.</div></div>';
+    } else {
+      html += '<div class="emp-list">';
+      list.forEach(function (emp) {
+        var s = emp.summary || {};
+        var initial = String(emp.name || '?').trim().charAt(0).toUpperCase() || '?';
+        html += '<div class="emp-card">' +
+          '<div class="emp-head">' +
+            '<div class="emp-avatar">' + escapeHtml(initial) + '</div>' +
+            '<div><div class="emp-name">' + escapeHtml(emp.name) + '</div>' +
+            '<div class="emp-sub">' + (emp.active ? 'Compte actif' : 'Compte désactivé') + '</div></div>' +
+          '</div>' +
+          '<div class="stats cols3">' +
+            statBox('Jours travaillés', s.daysWorked || 0) +
+            statBox('Non travaillés', s.daysOff || 0, 's-exp') +
+            statBox('Total gagné', money(s.gross)) +
+            statBox('Pourboires', money(s.tips), 's-tip') +
+            statBox('Recharge', money(s.recharge), 's-recharge') +
+            statBox('Dépenses', money(s.expenses), 's-exp') +
+          '</div>' +
+          '<div class="stats"><div class="stat s-net" style="grid-column:1 / -1"><span>Net du mois</span><b>' + money(s.net) + '</b></div></div>' +
+        '</div>';
+      });
+      html += '</div>';
+    }
+  } else {
+    title.textContent = 'Mon résumé';
+    html += summaryCards(currentSummary);
+  }
+
+  html += '<div class="section"><div class="section-title">' +
+    (isAdmin() ? 'Dernières journées enregistrées' : 'Derniers jours') + '</div>';
+
+  var recent = currentEntries.slice(0, 5);
+  if (isAdmin() && selectedEmployee !== 'all') recent = currentEntries.slice(0, 5);
+  if (!recent.length) {
+    html += '<div class="empty">Aucune journée enregistrée pour ce mois.</div>';
+  } else {
+    recent.forEach(function (entry) { html += entryCard(entry, false); });
+  }
+  html += '</div>';
+
+  box.innerHTML = html;
+}
+
+function renderEntries() {
+  var box = document.getElementById('entriesList');
+  var html = '';
+
+  if (!currentEntries.length) {
+    html = '<div class="section"><div class="empty">Aucune journée enregistrée.</div></div>';
+  } else {
+    html = '<div class="section" style="padding-bottom:6px">';
+    currentEntries.forEach(function (entry) { html += entryCard(entry, true); });
+    html += '</div>';
+  }
+
+  box.innerHTML = html;
+}
+
+function renderCalendar() {
+  var container = document.getElementById('calendarDays');
+  var month = document.getElementById('monthCalendar').value;
+
+  if (!month) {
+    container.innerHTML = '';
+    return;
+  }
+
+  var parts = month.split('-');
+  var year = Number(parts[0]);
+  var monthNumber = Number(parts[1]);
+
+  var firstDay = new Date(year, monthNumber - 1, 1);
+  var lastDay = new Date(year, monthNumber, 0);
+
+  var start = firstDay.getDay();
+  start = start === 0 ? 6 : start - 1;
+
+  // Regroupement par date
+  var byDate = {};
+  currentEntries.forEach(function (entry) {
+    if (!byDate[entry.date]) byDate[entry.date] = { worked: false, off: false, recharge: 0, net: 0 };
+    var d = byDate[entry.date];
+    if (entry.status === 'off') {
+      d.off = true;
+    } else {
+      d.worked = true;
+      d.recharge += Number(entry.recharge || 0);
+      d.net += Number(entry.net || 0);
+    }
+  });
+
+  var today = todayString();
+  var html = '';
+
+  for (var i = 0; i < start; i++) {
+    html += '<div class="calendar-empty"></div>';
+  }
+
+  for (var day = 1; day <= lastDay.getDate(); day++) {
+    var date = year + '-' + pad2(monthNumber) + '-' + pad2(day);
+    var info = byDate[date];
+    var cls = 'calendar-day';
+    var value = '';
+
+    if (info && info.worked) {
+      if (info.recharge > 0) cls += ' recharge';
+      else cls += ' worked';
+      value = moneyShort(info.net);
+    } else if (info && info.off) {
+      cls += ' off';
+      value = 'Repos';
+    }
+
+    if (date === today) cls += ' today';
+
+    html += '<div class="' + cls + '" data-date="' + date + '" onclick="openDay(this.dataset.date)">' +
+            '<div class="calendar-day-number">' + day + '</div>' +
+            (value ? '<div class="calendar-day-value">' + escapeHtml(value) + '</div>' : '') +
+            '</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function openDay(date) {
+  var found = null;
+  currentEntries.forEach(function (entry) {
+    if (!found && entry.date === date) found = entry;
+  });
+  if (found) {
+    openEntryModal(found);
+  } else {
+    openEntryModal(null, date);
+  }
+}
+
+/* ---------- MODAL JOURNEE ---------- */
+
+function setEntryStatus(status) {
+  document.getElementById('entryStatus').value = status;
+  var worked = document.getElementById('segWorked');
+  var off = document.getElementById('segOff');
+
+  worked.className = status === 'worked' ? 'on-worked' : '';
+  off.className = status === 'off' ? 'on-off' : '';
+
+  if (status === 'off') document.getElementById('amountFields').classList.add('hidden');
+  else document.getElementById('amountFields').classList.remove('hidden');
+}
+
+function openEntryModal(entry, presetDate) {
+  document.getElementById('entryModal').classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  document.getElementById('entryModalTitle').textContent = entry ? 'Modifier la journée' : 'Ajouter une journée';
+
+  document.getElementById('entryId').value = entry ? entry.id : '';
+  document.getElementById('entryDate').value = entry ? entry.date : (presetDate || todayString());
+  document.getElementById('entryGains').value = entry && entry.gains ? entry.gains : '';
+  document.getElementById('entryTips').value = entry && entry.tips ? entry.tips : '';
+  document.getElementById('entryRecharge').value = entry && entry.recharge ? entry.recharge : '';
+  document.getElementById('entryBonus').value = entry && entry.bonus ? entry.bonus : '';
+  document.getElementById('entryOtherGains').value = entry && entry.otherGains ? entry.otherGains : '';
+  document.getElementById('entryExpenses').value = entry && entry.expenses ? entry.expenses : '';
+  document.getElementById('entryNotes').value = entry ? entry.notes : '';
+
+  setEntryStatus(entry && entry.status === 'off' ? 'off' : 'worked');
+
+  // Choix de l'employé (admin)
+  var wrap = document.getElementById('entryEmployeeWrap');
+  if (isAdmin()) {
+    var select = document.getElementById('entryEmployee');
+    var html = '';
+    currentEmployees.forEach(function (emp) {
+      html += '<option value="' + escapeHtml(emp.id) + '">' + escapeHtml(emp.name) + '</option>';
+    });
+    html += '<option value="admin">Administrateur</option>';
+    select.innerHTML = html;
+
+    var wanted = entry ? entry.employeeId : (selectedEmployee !== 'all' ? selectedEmployee : '');
+    if (wanted) select.value = wanted;
+    wrap.classList.remove('hidden');
+  } else {
+    wrap.classList.add('hidden');
+  }
+}
+
+function closeEntryModal() {
+  document.getElementById('entryModal').classList.add('hidden');
+  document.body.classList.remove('modal-open');
+}
+
+function saveEntry() {
+  var entry = {
+    id: document.getElementById('entryId').value,
+    date: document.getElementById('entryDate').value,
+    status: document.getElementById('entryStatus').value,
+    gains: document.getElementById('entryGains').value,
+    tips: document.getElementById('entryTips').value,
+    recharge: document.getElementById('entryRecharge').value,
+    bonus: document.getElementById('entryBonus').value,
+    otherGains: document.getElementById('entryOtherGains').value,
+    expenses: document.getElementById('entryExpenses').value,
+    notes: document.getElementById('entryNotes').value
+  };
+
+  if (isAdmin()) entry.employeeId = document.getElementById('entryEmployee').value;
+
+  if (!entry.date) {
+    showToast('La date est obligatoire.', true);
+    return;
+  }
+
+  var button = document.getElementById('entrySaveBtn');
+  button.disabled = true;
+  button.textContent = 'Enregistrement...';
+
+  google.script.run
+    .withSuccessHandler(function () {
+      button.disabled = false;
+      button.textContent = 'Enregistrer';
+      closeEntryModal();
+
+      setMonthInputs(entry.date.substring(0, 7));
+      loadData();
+      showToast('Journée enregistrée ✔');
+    })
+    .withFailureHandler(function (error) {
+      button.disabled = false;
+      button.textContent = 'Enregistrer';
+      showToast((error && error.message) || "Impossible d'enregistrer la journée.", true);
+    })
+    .saveEntry(sessionToken, entry);
+}
+
+function editEntry(id) {
+  var entry = currentEntries.find(function (item) {
+    return String(item.id) === String(id);
+  });
+
+  if (!entry) {
+    showToast('Entrée introuvable.', true);
+    return;
+  }
+  openEntryModal(entry);
+}
+
+function removeEntry(id) {
+  if (!confirm('Voulez-vous vraiment supprimer cette journée ?')) return;
+
+  google.script.run
+    .withSuccessHandler(function () {
+      showToast('Journée supprimée.');
+      loadData();
+    })
+    .withFailureHandler(function (error) {
+      showToast((error && error.message) || 'Impossible de supprimer la journée.', true);
+    })
+    .deleteEntry(sessionToken, id);
+}
+
+/* ---------- ADMIN ---------- */
+
+function loadEmployees() {
+  if (!sessionToken || !isAdmin()) return;
+
+  google.script.run
+    .withSuccessHandler(function (employees) {
+      renderEmployees(employees || []);
+    })
+    .withFailureHandler(function (error) {
+      showToast((error && error.message) || 'Erreur lors du chargement des employés.', true);
+    })
+    .getEmployees(sessionToken);
+}
+
+function renderEmployees(employees) {
+  var box = document.getElementById('employeesList');
+  var html = '';
+
+  if (!employees.length) {
+    html = '<div class="empty">Aucun employé.</div>';
+  } else {
+    employees.forEach(function (employee) {
+      html += '<div class="employee-row">' +
+        '<div class="employee-row-top">' +
+          '<div><strong>' + escapeHtml(employee.name) + '</strong>' +
+          '<div class="muted" style="font-size:13px">' + escapeHtml(employee.username) + '</div></div>' +
+          (employee.active
+            ? '<span class="employee-status active">Actif</span>'
+            : '<span class="employee-status inactive">Désactivé</span>') +
+        '</div>' +
+        '<div class="muted" style="font-size:12px;margin-top:6px">Dernière connexion : ' +
+          (employee.lastLogin ? new Date(employee.lastLogin).toLocaleString('fr-FR') : 'Jamais') + '</div>' +
+        '<div class="entry-actions">' +
+          '<button class="btn btn-secondary btn-small" data-id="' + escapeHtml(employee.id) +
+            '" onclick="toggleEmployee(this.dataset.id)">' +
+            (employee.active ? 'Désactiver' : 'Activer') + '</button>' +
+          '<button class="btn btn-secondary btn-small" data-id="' + escapeHtml(employee.id) +
+            '" onclick="resetPassword(this.dataset.id)">Mot de passe</button>' +
+        '</div>' +
+      '</div>';
+    });
+  }
+
+  box.innerHTML = html;
+}
+
+function createEmployee() {
+  var name = document.getElementById('newEmployeeName').value.trim();
+  var username = document.getElementById('newEmployeeUsername').value.trim();
+  var password = document.getElementById('newEmployeePassword').value;
+
+  if (!name || !username || !password) {
+    showToast('Veuillez remplir tous les champs.', true);
+    return;
+  }
+
+  google.script.run
+    .withSuccessHandler(function () {
+      document.getElementById('newEmployeeName').value = '';
+      document.getElementById('newEmployeeUsername').value = '';
+      document.getElementById('newEmployeePassword').value = '';
+      showToast('Employé créé ✔');
+      loadEmployees();
+      lastLoad = 0;
+    })
+    .withFailureHandler(function (error) {
+      showToast((error && error.message) || "Impossible de créer l'employé.", true);
+    })
+    .createEmployee(sessionToken, name, username, password);
+}
+
+function toggleEmployee(id) {
+  google.script.run
+    .withSuccessHandler(function () { loadEmployees(); lastLoad = 0; })
+    .withFailureHandler(function (error) {
+      showToast((error && error.message) || 'Erreur.', true);
+    })
+    .toggleEmployee(sessionToken, id);
+}
+
+function resetPassword(id) {
+  var password = prompt('Nouveau mot de passe (4 caractères minimum) :');
+  if (!password) return;
+
+  google.script.run
+    .withSuccessHandler(function () {
+      showToast('Mot de passe modifié ✔');
+    })
+    .withFailureHandler(function (error) {
+      showToast((error && error.message) || 'Erreur.', true);
+    })
+    .resetEmployeePassword(sessionToken, id, password);
+}
+
+/* ---------- MESSAGE ---------- */
+
+function showToast(message, isError) {
+  var old = document.getElementById('toast');
+  if (old) old.parentNode.removeChild(old);
+  if (toastTimer) clearTimeout(toastTimer);
+
+  var div = document.createElement('div');
+  div.id = 'toast';
+  div.className = 'toast' + (isError ? ' error' : '');
+  div.textContent = message;
+  document.body.appendChild(div);
+
+  toastTimer = setTimeout(function () {
+    var el = document.getElementById('toast');
+    if (el) el.parentNode.removeChild(el);
+  }, 3200);
+}
+
+/* ---------- FORMATAGE ---------- */
+
+function money(value) {
+  return Number(value || 0).toLocaleString('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }) + ' €';
+}
+
+function moneyShort(value) {
+  return Number(value || 0).toLocaleString('fr-FR', {
+    maximumFractionDigits: 0
+  }) + ' €';
+}
+
+function formatDate(value) {
+  if (!value) return '';
+  var parts = String(value).split('-');
+  if (parts.length !== 3) return value;
+  return parts[2] + '/' + parts[1] + '/' + parts[0];
+}
+
+function escapeHtml(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+</script>
+
+</body>
+</html>
