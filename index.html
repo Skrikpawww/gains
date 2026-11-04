@@ -358,13 +358,68 @@ function toast(msg, isErr) {
   toastTimer = setTimeout(function () { t.className = 'toast'; }, 2600);
 }
 
-/* ---------- Appels serveur ---------- */
+/* ---------- Appels serveur (avec mémoire locale) ---------- */
+var READS = { getHome: 1, getAppData: 1, getExpenses: 1, getSavings: 1, getSubscriptions: 1, getDebts: 1 };
+var CACHE_KEY = 'finances_cache';
+var cache = {}, cachePass = false, epoch = 0, savTouched = false;
+
+function loadCache() {
+  cache = {};
+  try {
+    var o = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (o && user && o.uid === user.userId && o.data) cache = o.data;
+  } catch (e) {}
+}
+function saveCache() {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ uid: user && user.userId, data: cache })); } catch (e) {}
+}
+function clearCache() {
+  cache = {};
+  try { localStorage.removeItem(CACHE_KEY); } catch (e) {}
+}
+
 function api(action) {
   var args = Array.prototype.slice.call(arguments, 1);
-  return rawApi(action, [token].concat(args)).catch(function (e) {
+  var isRead = !!READS[action];
+  var key = action + '|' + JSON.stringify(args);
+
+  // Premier passage : on affiche tout de suite ce qu'on a en mémoire
+  if (isRead && cachePass) return (key in cache) ? Promise.resolve(cache[key]) : new Promise(function () {});
+
+  var ep = epoch;
+  if (!isRead) { epoch++; clearCache(); }
+
+  function attempt(n) {
+    return rawApi(action, [token].concat(args)).catch(function (e) {
+      // coupure réseau : on réessaie (lectures seulement)
+      if (isRead && e && e.network && n < 2) {
+        return new Promise(function (r) { setTimeout(r, 1000); }).then(function () { return attempt(n + 1); });
+      }
+      throw e;
+    });
+  }
+  return attempt(0).then(function (res) {
+    if (isRead) { if (ep === epoch) { cache[key] = res; saveCache(); } }
+    else { epoch++; clearCache(); }
+    return res;
+  }, function (e) {
     if (e && /Session/i.test(e.message || '')) { logoutLocal(); showLogin('Session expirée, reconnectez-vous.'); }
     throw e;
   });
+}
+
+/* Charge en avance les autres pages pendant que vous regardez l'accueil */
+var prefetched = false;
+function prefetch() {
+  if (prefetched) return;
+  prefetched = true;
+  var list = [['getExpenses', months.expenses], ['getSubscriptions'], ['getDebts'], ['getSavings'], ['getAppData', months.ikea]];
+  var i = 0;
+  (function next() {
+    if (i >= list.length || !token) return;
+    var a = list[i++];
+    api.apply(null, a).then(function () { setTimeout(next, 250); }, function () {});
+  })();
 }
 
 /* ---------- Session ---------- */
@@ -392,7 +447,7 @@ function findToken() {
   }
   return t || null;
 }
-function logoutLocal() { token = null; user = null; clearToken(); }
+function logoutLocal() { token = null; user = null; clearToken(); clearCache(); prefetched = false; }
 
 function showLogin(msg) {
   $('restoreScreen').classList.add('hidden');
@@ -421,6 +476,7 @@ function restoreSession(t, attempt) {
 }
 
 function enterApp() {
+  loadCache();
   $('restoreScreen').classList.add('hidden');
   $('loginScreen').classList.add('hidden');
   $('app').classList.remove('hidden');
@@ -469,14 +525,27 @@ function go(p) {
 function render() {
   var id = ++renderId;
   var el = $('page');
-  el.innerHTML = '<div class="loading"><div class="spin"></div>Chargement…</div>';
   var fn = { home: renderHome, income: renderIncome, expenses: renderExpenses, savings: renderSavings, subs: renderSubs, debts: renderDebts }[page];
-  fn(function (html) {
-    if (id !== renderId) return;
+  var shown = false, last = null;
+  savTouched = false;
+  el.innerHTML = '<div class="loading"><div class="spin"></div>Chargement…</div>';
+
+  function show(html) {
+    if (id !== renderId || html === last) return;
+    last = html; shown = true;
     el.innerHTML = html;
     afterRender();
+  }
+  // 1) tout de suite avec la mémoire locale, 2) puis mise à jour depuis le serveur
+  cachePass = true;
+  try { fn(show, function () {}); } finally { cachePass = false; }
+  fn(function (html) {
+    if (page === 'savings' && savTouched) return;
+    show(html);
+    if (page === 'home') setTimeout(prefetch, 600);
   }, function (e) {
     if (id !== renderId) return;
+    if (shown) { toast('Hors connexion : les chiffres affichés peuvent être anciens', true); return; }
     el.innerHTML = '<div class="empty">' + esc((e && e.message) || 'Erreur') + '<br><br><button class="btn btn-sm" onclick="render()">Réessayer</button></div>';
   });
 }
@@ -738,6 +807,7 @@ function manageCats() {
 var savData = null, savTimers = {};
 function renderSavings(done, fail) {
   api('getSavings').then(function (d) {
+    if (savTouched) return;
     savData = d;
     done(savingsHtml());
   }, fail);
@@ -766,6 +836,7 @@ function bindSavings() {
       var b = +row.getAttribute('data-bill'), input = row.querySelector('input');
       function set(n) {
         n = Math.min(Math.max(Math.floor(n) || 0, 0), 99999);
+        savTouched = true;
         input.value = n; savData[cat][b] = n;
         $('sub_' + cat + '_' + b).textContent = n ? eur(n * b) : '—';
         $('tot_' + cat).textContent = eur(savTotal(cat));
@@ -976,6 +1047,7 @@ document.addEventListener('change', function (e) {
 /* ---------- Démarrage ---------- */
 (function init() {
   var t = findToken();
+  try { fetch(API_URL, { mode: 'no-cors' }).catch(function () {}); } catch (e) {}   // réveille le serveur
   if (t) restoreSession(t, 0); else showLogin();
 })();
 </script>

@@ -1,5 +1,5 @@
 // Service worker : réseau d'abord, cache en secours (l'application s'ouvre même hors ligne)
-const CACHE = 'finances-v3';
+const CACHE = 'finances-v4';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'carbon.jpg', 'carbon-gold.jpg',
   'icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png'];
 
